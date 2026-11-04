@@ -1,7 +1,0 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课表</title><style>body{font-family:Arial;background:#0f172a;color:#fff;margin:0;padding:20px}h1{text-align:center}.card{background:#1e293b;border-radius:12px;padding:16px;max-width:500px;margin:20px auto}button{margin:4px;padding:10px 14px;border:none;border-radius:8px;background:#3b82f6;color:#fff}.bar{text-align:center}</style></head><body><h1 id="title"></h1><div class="card"><ol id="list"></ol></div><div class="bar" id="btns"></div><script>
-const data={"周一":["物理","数学","地理","语文","英语","生物","体育"],"周二":["英语","数学","历史","物理","德法","语文","信息"],"周三":["数学","英语","物理","语文","地理","数学","美术"],"周四":["语文","英语","体育","德法","数学","生物","物理"],"周五":["语文","数学","体育","英语","音乐","历史","班心"]};
-const days=["周一","周二","周三","周四","周五"];
-function show(d){title.textContent=d+"课程";list.innerHTML=data[d].map(x=>`<li>${x}</li>`).join("");}
-btns.innerHTML=days.map(d=>`<button onclick="show('${d}')">${d}</button>`).join("");
-let w=new Date().getDay();let next={0:"周一",1:"周二",2:"周三",3:"周四",4:"周五",5:"周一",6:"周一"};show(next[w]);
-</script></body></html>
