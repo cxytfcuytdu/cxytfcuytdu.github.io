@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#7aa7ff" />
+<title>课表</title>
+<style>
+  :root {
+    --bg: #7aa7ff;
+    --bg-2: #5f8bff;
+    --surface: rgba(255, 255, 255, 0.18);
+    --surface-strong: rgba(255, 255, 255, 0.28);
+    --border: rgba(255, 255, 255, 0.22);
+    --text: #ffffff;
+    --text-dim: rgba(255, 255, 255, 0.72);
+    --accent: #ffffff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+      "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
+    background-attachment: fixed;
+    transition: background 0.4s ease;
+  }
+  .app {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 20px 16px 120px;
+  }
+  /* 顶部时间天气卡 */
+  .top-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(22px) saturating(180%);
+    -webkit-backdrop-filter: blur(22px) saturating(180%);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+  }
+  .clock h1 {
+    margin: 0;
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .date {
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .weather {
+    min-width: 0;
+    text-align: right;
+    background: linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08));
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 10px 14px;
+    border-radius: 22px;
+  }
+  .weather .city {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .weather .now {
+    font-size: 26px;
+    font-weight: 700;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .weather .desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .weather .tip {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  /* 通用液态玻璃卡片 */
+  .glass {
+    margin-top: 14px;
+    padding: 16px;
+    border-radius: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px) saturating(180%);
+    -webkit-backdrop-filter: blur(20px) saturating(180%);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+  }
+  .glass h3 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 0.3px;
+  }
+  /* 倒计时小组件 */
+  .countdown {
+    padding: 14px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.12));
+    border: 1px solid rgba(255,255,255,0.22);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .countdown b {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  /* 课表 */
+  .list-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .list-title b {
+    font-size: 16px;
+  }
+  .week-btn {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+  ol {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+  li {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.14);
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  li .time {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  li.active {
+    background: rgba(255,255,255,0.42);
+    border-color: rgba(255,255,255,0.32);
+    font-weight: 700;
+  }
+  li.next {
+    background: rgba(255,255,255,0.24);
+    border-color: rgba(255,255,255,0.22);
+  }
+  /* 调课 */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  select, input[type="text"], input[type="color"] {
+    flex: 1 1 0;
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: white;
+    background: rgba(255,255,255,0.18);
+    outline: none;
+  }
+  input::placeholder { color: rgba(255,255,255,0.5); }
+  button {
+    border: none;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: white;
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+  }
+  button.primary {
+    background: white;
+    color: var(--bg);
+    border-color: white;
+    font-weight: 700;
+  }
+  button.danger {
+    background: rgba(220, 80, 90, 0.78);
+    border-color: rgba(255,255,255,0.18);
+  }
+  .temp-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.14);
+    margin-bottom: 8px;
+  }
+  .temp-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: white;
+  }
+  .temp-item span {
+    flex: 1;
+    font-size: 14px;
+  }
+  /* 设置列表 */
+  .settings-list {
+    display: grid;
+    gap: 10px;
+  }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  .setting-row label {
+    font-size: 14px;
+  }
+  .color-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35);
+    cursor: pointer;
+    padding: 0;
+  }
+  .swatch.active {
+    border-color: white;
+    transform: scale(1.08);
+  }
+  .hidden { display: none !important; }
+  /* iOS 27 同款液态玻璃底部 Dock */
+  .dock {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(28px) saturating(200%);
+    -webkit-backdrop-filter: blur(28px) saturating(200%);
+    box-shadow:
+      0 18px 45px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    z-index: 50;
+  }
+  .dock button {
+    position: relative;
+    min-width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    padding: 0 14px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .dock button:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .dock button:active {
+    transform: scale(0.94);
+  }
+  .dock button.pill {
+    background: rgba(255, 255, 255, 0.32);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  @media (max-width: 360px) {
+    .clock h1 { font-size: 38px; }
+    .weather { padding: 8px 12px; }
+    .weather .now { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 顶部：时间 + 天气 -->
+  <div class="top-card">
+    <div class="clock">
+      <h1 id="t">00:00:00</h1>
+      <div class="date" id="d"></div>
+    </div>
+    <div class="weather">
+      <div class="city" id="city">定位中…</div>
+      <div class="now" id="temp">--°</div>
+      <div class="desc" id="wdesc">获取天气中</div>
+      <div class="tip" id="wtip"></div>
+    </div>
+  </div>
+  <!-- 倒计时小组件 -->
+  <div class="glass">
+    <div class="countdown" id="countBox">加载中…</div>
+  </div>
+  <!-- 课表 -->
+  <div class="glass">
+    <div class="list-title">
+      <b id="lab">今日课程</b>
+      <button class="week-btn" onclick="set.classList.toggle('hidden')">设置</button>
+    </div>
+    <ol id="list"></ol>
+  </div>
+  <!-- 临时调课 -->
+  <div class="glass">
+    <h3>临时调课</h3>
+    <div class="row">
+      <select id="tempWeek">
+        <option value="1">周一</option>
+        <option value="2">周二</option>
+        <option value="3">周三</option>
+        <option value="4">周四</option>
+        <option value="5">周五</option>
+      </select>
+      <select id="tempIdx">
+        <option value="0">第1节</option>
+        <option value="1">第2节</option>
+        <option value="2">第3节</option>
+        <option value="3">第4节</option>
+        <option value="4">第5节</option>
+        <option value="5">第6节</option>
+        <option value="6">第7节</option>
+      </select>
+    </div>
+    <div class="row">
+      <input id="tempSubj" placeholder="输入新科目名称" />
+      <button class="primary" onclick="addTemp()">添加调课</button>
+    </div>
+    <div id="tempList"></div>
+    <button class="danger" onclick="clearAllTemp()" style="margin-top:8px">清空全部调课</button>
+  </div>
+  <!-- 设置 -->
+  <div class="glass hidden" id="set">
+    <h3>设置</h3>
+    <div class="settings-list">
+      <div class="setting-row">
+        <label>背景色</label>
+        <div class="color-options" id="colorOptions"></div>
+      </div>
+      <div class="setting-row">
+        <label>自定义颜色</label>
+        <input type="color" id="customColor" value="#7aa7ff" />
+      </div>
+      <div class="setting-row">
+        <label>显示课程列表</label>
+        <input type="checkbox" id="widget" style="width:18px;height:18px;accent-color:white" />
+      </div>
+      <div class="setting-row">
+        <label>天气城市</label>
+        <input type="text" id="cityInput" placeholder="例如：北京" style="width:160px" />
+      </div>
+      <div class="setting-row">
+        <label>重置原始课表</label>
+        <button class="danger" onclick="resetOriginTimetable()">重置</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 液态玻璃底部按钮 -->
+<div class="dock">
+  <button onclick="show('today')">今日</button>
+  <button onclick="show('tom')">明日</button>
+  <button onclick="day(-1)">‹</button>
+  <button onclick="day(1)">›</button>
+  <button class="pill" onclick="set.classList.toggle('hidden')">设置</button>
+</div>
+<script>
+  const defaultTb = {
+    1: ["物理","数学","地理","语文","英语","生物","体育"],
+    2: ["英语","数学","历史","物理","德法","语文","信息"],
+    3: ["数学","英语","物理","语文","地理","数学","美术"],
+    4: ["语文","英语","体育","德法","数学","生物","物理"],
+    5: ["语文","数学","体育","英语","音乐","历史","班心"]
+  };
+  const presetColors = [
+    "#7aa7ff", "#5f8bff", "#4c7bff",
+    "#6bcf8f", "#34c759", "#5ac8fa",
+    "#ff9f0a", "#ff6482", "#ff2d55",
+    "#af52de", "#8e8e93", "#2c2c2e"
+  ];
+  const bgDarken = {
+    "#7aa7ff": "#5f8bff",
+    "#5f8bff": "#4a74e6",
+    "#4c7bff": "#3a65e0",
+    "#6bcf8f": "#4fbf7a",
+    "#34c759": "#28a745",
+    "#5ac8fa": "#3aa6e8",
+    "#ff9f0a": "#e88a00",
+    "#ff6482": "#e54a6a",
+    "#ff2d55": "#e01b44",
+    "#af52de": "#9238c2",
+    "#8e8e93": "#747478",
+    "#2c2c2e": "#1c1c1e"
+  };
+  let tb = JSON.parse(localStorage.getItem("baseTb")) || JSON.parse(JSON.stringify(defaultTb));
+  let tempChanges = JSON.parse(localStorage.getItem("tempChanges")) || [];
+  let off = 0;
+  const lessonTime = [
+    {s:"08:00",e:"08:45"},
+    {s:"08:55",e:"09:40"},
+    {s:"10:00",e:"10:45"},
+    {s:"10:55",e:"11:40"},
+    {s:"14:00",e:"14:45"},
+    {s:"14:55",e:"15:40"},
+    {s:"16:00",e:"16:45"}
+  ];
+  function saveTemp(){ localStorage.setItem("tempChanges", JSON.stringify(tempChanges)); }
+  function saveBaseTb(){ localStorage.setItem("baseTb", JSON.stringify(tb)); }
+  function getEffectiveTable(weekNum){
+    let arr = [...tb[weekNum]];
+    tempChanges.forEach(item => {
+      if(item.enable && Number(item.week) === weekNum){
+        arr[Number(item.index)] = item.subject;
+      }
+    });
+    return arr;
+  }
+  function setBg(color){
+    document.documentElement.style.setProperty("--bg", color);
+    document.documentElement.style.setProperty("--bg-2", bgDarken[color] || shade(color, -0.12));
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", color);
+    localStorage.setItem("bg", color);
+  }
+  function shade(hex, percent){
+    let c = hex.replace("#","");
+    let num = parseInt(c, 16);
+    let r = (num >> 16) + Math.round(255 * percent);
+    let g = ((num >> 8) & 0x00FF) + Math.round(255 * percent);
+    let b = (num & 0x0000FF) + Math.round(255 * percent);
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+  function renderColorOptions(){
+    const box = document.getElementById("colorOptions");
+    const current = localStorage.getItem("bg") || "#7aa7ff";
+    box.innerHTML = "";
+    presetColors.forEach(color => {
+      const btn = document.createElement("button");
+      btn.className = "swatch" + (color.toLowerCase() === current.toLowerCase() ? " active" : "");
+      btn.style.background = color;
+      btn.onclick = () => {
+        setBg(color);
+        document.getElementById("customColor").value = color;
+        renderColorOptions();
+      };
+      box.appendChild(btn);
+    });
+  }
+  function parseHM(str){
+    let [h,m] = str.split(":").map(Number);
+    let d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  }
+  function render(){
+    let n = new Date();
+    let w = ((n.getDay() + 6) % 7) + 1 + off;
+    if(w < 1) w = 5;
+    if(w > 5) w = 1;
+    let effectiveList = getEffectiveTable(w);
+    let htmlLi = "";
+    let nowTs = n.getTime();
+    let currentLesson = -1;
+    let nextLesson = -1;
+    for(let i = 0; i < effectiveList.length; i++){
+      let s = parseHM(lessonTime[i].s).getTime();
+      let e = parseHM(lessonTime[i].e).getTime();
+      let cls = "";
+      if(nowTs >= s && nowTs <= e){
+        currentLesson = i;
+        cls = "active";
+      } else if(nowTs < s && nextLesson === -1){
+        nextLesson = i;
+        cls = "next";
+      }
+      // 已删除课程条目右侧时间文本，倒计时逻辑继续使用 lessonTime 数组
+      htmlLi += `<li class="${cls}"><span>${i+1}. ${effectiveList[i]}</span></li>`;
+    }
+    list.innerHTML = htmlLi;
+    lab.textContent = ["","星期一","星期二","星期三","星期四","星期五"][w] + "课程";
+    t.textContent = n.toLocaleTimeString("zh-CN", {hour12:false});
+    d.textContent = n.toLocaleDateString("zh-CN", {year:"numeric", month:"long", day:"numeric", weekday:"long"});
+    let countBox = document.getElementById("countBox");
+    if(currentLesson >= 0){
+      let end = parseHM(lessonTime[currentLesson].e);
+      let diff = Math.round((end.getTime() - nowTs) / 60000);
+      countBox.innerHTML = `<b>🔥 正在上：${effectiveList[currentLesson]}</b>距离下课还有 ${diff} 分钟`;
+    } else if(nextLesson >= 0){
+      let start = parseHM(lessonTime[nextLesson].s);
+      let diffMin = Math.round((start.getTime() - nowTs) / 60000);
+      countBox.innerHTML = `<b>⏭ 下一节：${effectiveList[nextLesson]}</b>第${nextLesson+1}节 · 还有 ${diffMin} 分钟`;
+    } else {
+      countBox.innerHTML = `<b>✅ 今日课程已结束</b>明天继续加油`;
+    }
+  }
+  function addTemp(){
+    let w = Number(document.getElementById("tempWeek").value);
+    let i = Number(document.getElementById("tempIdx").value);
+    let subj = document.getElementById("tempSubj").value.trim();
+    if(!subj) return alert("请输入科目名称");
+    tempChanges.push({week:w, index:i, subject:subj, enable:true});
+    saveTemp();
+    document.getElementById("tempSubj").value = "";
+    renderTempUi();
+    render();
+  }
+  function renderTempUi(){
+    let box = document.getElementById("tempList");
+    if(tempChanges.length === 0){
+      box.innerHTML = `<div style="opacity:0.7;font-size:14px;padding:8px 0">暂无临时调课</div>`;
+      return;
+    }
+    box.innerHTML = tempChanges.map((it, idx) => {
+      const weekText = ["","周一","周二","周三","周四","周五"][it.week];
+      return `<div class="temp-item">
+        <input type="checkbox" ${it.enable?"checked":""} onchange="toggleTemp(${idx})">
+        <span>${weekText} 第${Number(it.index)+1}节 → ${it.subject}</span>
+        <button onclick="delTemp(${idx})">删除</button>
+      </div>`;
+    }).join("");
+  }
+  function toggleTemp(idx){
+    tempChanges[idx].enable = !tempChanges[idx].enable;
+    saveTemp();
+    renderTempUi();
+    render();
+  }
+  function delTemp(idx){
+    tempChanges.splice(idx, 1);
+    saveTemp();
+    renderTempUi();
+    render();
+  }
+  function clearAllTemp(){
+    if(!confirm("确认清空全部临时调课？")) return;
+    tempChanges = [];
+    saveTemp();
+    renderTempUi();
+    render();
+  }
+  function resetOriginTimetable(){
+    if(!confirm("恢复原始课表，不会清除临时调课")) return;
+    tb = JSON.parse(JSON.stringify(defaultTb));
+    saveBaseTb();
+    render();
+  }
+  function show(x){
+    off = x === "today" ? 0 : 1;
+    render();
+  }
+  function day(v){
+    off += v;
+    render();
+  }
+  /* 天气小组件 */
+  async function loadWeather(city){
+    const cityEl = document.getElementById("city");
+    const tempEl = document.getElementById("temp");
+    const descEl = document.getElementById("wdesc");
+    const tipEl = document.getElementById("wtip");
+    cityEl.textContent = city || "定位中";
+    tempEl.textContent = "--°";
+    descEl.textContent = "获取天气中";
+    tipEl.textContent = "";
+    try{
+      const res = await fetch(`https://wttr.in/${encodeURIComponent(city || "")}?format=j1&lang=zh`);
+      if(!res.ok) throw new Error("天气请求失败");
+      const data = await res.json();
+      const c = data.current_condition[0];
+      cityEl.textContent = data.nearest_area[0].areaName[0].value || city;
+      tempEl.textContent = c.temp_C + "°";
+      descEl.textContent = (c.lang_zh && c.lang_zh[0]) ? c.lang_zh[0].value : c.weatherDesc[0].value;
+      tipEl.textContent = `湿度 ${c.humidity}% · 风速 ${c.windspeedKmph} km/h`;
+    }catch(e){
+      cityEl.textContent = city || "城市";
+      tempEl.textContent = "--°";
+      descEl.textContent = "天气加载失败";
+      tipEl.textContent = "请检查网络或城市名";
+    }
+  }
+  function initWeather(){
+    const savedCity = localStorage.getItem("weatherCity");
+    if(savedCity){
+      document.getElementById("cityInput").value = savedCity;
+      loadWeather(savedCity);
+      return;
+    }
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const {latitude, longitude} = pos.coords;
+          loadWeather(`${latitude},${longitude}`);
+        },
+        () => {
+          loadWeather("auto");
+        }
+      );
+    } else {
+      loadWeather("auto");
+    }
+  }
+  document.getElementById("customColor").addEventListener("input", e => {
+    setBg(e.target.value);
+    renderColorOptions();
+  });
+  document.getElementById("cityInput").addEventListener("change", e => {
+    const city = e.target.value.trim();
+    localStorage.setItem("weatherCity", city);
+    loadWeather(city);
+  });
+  /* 初始化 */
+  const savedBg = localStorage.getItem("bg") || "#7aa7ff";
+  setBg(savedBg);
+  document.getElementById("customColor").value = savedBg;
+  renderColorOptions();
+  widget.checked = localStorage.widget != "0";
+  function uw(){
+    document.querySelectorAll(".glass")[1].style.display = widget.checked ? "" : "none";
+    localStorage.widget = widget.checked ? 1 : 0;
+  }
+  widget.onchange = uw;
+  uw();
+  setInterval(render, 1000);
+  render();
+  renderTempUi();
+  initWeather();
+</script>
+</body>
+</html>
